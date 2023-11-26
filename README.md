@@ -1,4 +1,3 @@
-Creating a `README.md` for your NFA (Nondeterministic Finite Automaton) solver program involves explaining each major component of the code, including how the NFA is represented, processed, and how to use the program. Including code snippets and diagrams can enhance understanding. Below is a template for your README.
 
 ---
 
