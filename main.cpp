@@ -3,6 +3,7 @@
 #include<string>
 #include<vector>
 #include<sstream>
+#include <algorithm>
 
 using namespace std;
 
@@ -19,17 +20,105 @@ string ProcessLine(const string& line) {
     return processedLine;
 }
 
-void NextStates(string alphabetSymbols, StateTransition currentState, StateTransition* StateTransition, char symbol) {
+void removeDuplicates(vector<StateTransition>& vec) {
+    std::sort(vec.begin(), vec.end());
+    vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
+}
 
+StateTransition GetStateTransition(string state, vector<StateTransition> stateTransitions) {
+    for (const StateTransition nextState: stateTransitions)
+        if (nextState.stateID == state) return nextState;
+
+    return StateTransition(); 
+}
+
+/**
+ * Function to find next states after consuming a character input from the language
+ * 
+ * @param alphabetSymbols Language/input provided to the NFA
+ * @param currentState current state accepting the input
+ * @param stateTransitions transition table for the machine
+ * @param symbol current character in the language which is being provided to the machine
+ * 
+ * @return next states after consuming the input
+*/
+vector<StateTransition> NextStates(string alphabetSymbols, StateTransition currentState, vector<StateTransition> stateTransitions, char symbol) {
+
+    vector<StateTransition> activeStatesForCurrentSymbol;
+
+    /*
+        The first loop finds the next states after transitions for a state after consuming the charater
+
+        e.g.
+        01      ; The alphabets
+        4       ; 4 states to read 1, 2, 3 and 4
+        1 1,2 Φ ; state 1 on 0 = {1} ; 1 on 1 = {1, 2} ; 1 on ε = Φ 
+        3 Φ 3   ; state 2 on 0 = {3} ; 2 on 1 = Φ      ; 2 on ε = {3}
+        Φ 4 Φ   ; state 3 on 0 = Φ   ; 3 on 1 = {4}    ; 3 on ε = Φ
+        4 4 Φ   ; state 4 on 0 = {4} ; 4 on 1 = Φ      ; 4 on ε = Φ
+        4       ; accept states are {q4}
+
+        For the given NFA, lets the input language is 1001
+        and we are reading the first character i.e. 1
+
+        Then the next transition from the start state will be {1, 2}
+
+        01      ; The alphabets
+        4       ; 4 states to read 1, 2, 3 and 4
+        
+                |
+               \/
+             0 1   ε
+      ->q1 | 1 1,2 Φ ; state 1 on 0 = {1} ; 1 on 1 = {1, 2} ; 1 on ε = Φ 
+        q2 | 3 Φ   3 ; state 2 on 0 = {3} ; 2 on 1 = Φ      ; 2 on ε = {3}
+        q3 | Φ 4   Φ ; state 3 on 0 = Φ   ; 3 on 1 = {4}    ; 3 on ε = Φ
+        q4 | 4 4   Φ ; state 4 on 0 = {4} ; 4 on 1 = Φ      ; 4 on ε = Φ
+
+        4            ; accept states are {q4}
+
+    */
     for (const string state: currentState.transitionsForSymbols[alphabetSymbols.find(symbol)]) {
         
+        // Since we are storing these transitions in string form and not creating an actual graph, we need to find the object for this state in the transition table
+        StateTransition tr = GetStateTransition(state, stateTransitions);
 
+        if (!tr.stateID.empty()) {
+            activeStatesForCurrentSymbol.push_back(tr);
+        }
 
     }
 
+    // Since its a bad approach to modify an array during its iteration we will create an temporary epsilon transition array
+    vector<StateTransition> tempEpsilonTransitions;
+
+    // Sometimes on a input a the machine might transition multiple times due to ε transition.
+    for (const StateTransition active: activeStatesForCurrentSymbol) {
+        if (!active.transitionsForSymbols.back().empty()) {
+            
+            for (const string state: active.transitionsForSymbols.back()) {
+                
+                StateTransition tr = GetStateTransition(state, stateTransitions);
+
+                tempEpsilonTransitions.push_back(tr);
+
+            }
+
+            
+        }
+    }
+
+    // Remove duplicates from tempEpsilonTransitions
+    removeDuplicates(tempEpsilonTransitions);
+
+    for (const StateTransition tr: tempEpsilonTransitions) {
+        cout << tr.stateID << endl;
+    }
+
+    return activeStatesForCurrentSymbol;
+
 }
 
-void SolveNFA(string alphabetSymbols, string totalStates, vector<string> acceptStates, StateTransition* stateTransitions) {
+void SolveNFA(string alphabetSymbols, string totalStates, vector<string> acceptStates, vector<StateTransition> stateTransitions) {
 
     string input;
     while(input != "Done") {
@@ -60,7 +149,7 @@ int main() {
     string alphabetSymbols;              // String to store the alphabets
     string totalStates;                  // String to store the total number of states
     vector<string> acceptStates;         // Vector to store the accept states
-    StateTransition* stateTransitions;   // Array of StateTransition structs to store the transition table
+    vector<StateTransition> stateTransitions;   // Array of StateTransition structs to store the transition table
 
     if (inputFile.is_open()) {
         // Get and processed alphabet symbols
@@ -70,9 +159,6 @@ int main() {
         // Get and processed number of states
         getline(inputFile, totalStates);
         totalStates = ProcessLine(totalStates);
-
-        // Allocate memory for the transition table
-        stateTransitions = new StateTransition[stoi(totalStates)];
 
         // Read and process the transition table from the input file
         for (int i = 0; i < stoi(totalStates); i++) {
@@ -103,8 +189,12 @@ int main() {
             }
 
             // Store the transitions for the current state
-            stateTransitions[i].stateID = to_string(i);
-            stateTransitions[i].transitionsForSymbols = symbolTransitions;
+            StateTransition tr = StateTransition();
+
+            tr.stateID = to_string(i);
+            tr.transitionsForSymbols = symbolTransitions;
+
+            stateTransitions.push_back(tr);
         }
 
         // Read and process the accept states
@@ -140,6 +230,5 @@ int main() {
     }
 
     inputFile.close();
-    delete[] stateTransitions; // Freeing the allocated memory
     return 0;
 }
