@@ -1,7 +1,8 @@
 01      ; The alphabets
 4       ; 4 states to read 1, 2, 3 and 4
+1       ; start state
 1 1,2 Φ ; state 1 on 0 = {1} ; 1 on 1 = {1, 2} ; 1 on ε = Φ 
 3 Φ 3   ; state 2 on 0 = {3} ; 2 on 1 = Φ      ; 2 on ε = {3}
 Φ 4 Φ   ; state 3 on 0 = Φ   ; 3 on 1 = {4}    ; 3 on ε = Φ
-4 4 Φ   ; state 4 on 0 = {4} ; 4 on 1 = Φ      ; 4 on ε = Φ
+4 4 Φ   ; state 4 on 0 = {4} ; 4 on 1 = {4}    ; 4 on ε = Φ
 4       ; accept states are {q4}
